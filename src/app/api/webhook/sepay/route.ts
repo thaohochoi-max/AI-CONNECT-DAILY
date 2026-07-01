@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import { verifySepayRequest, PLAN_AMOUNTS } from '@/lib/sepay'
 import { sendWelcomeEmail } from '@/lib/email'
+import { notifyPayment, notifyError } from '@/lib/telegram'
 
 type SepayPayload = {
   id: number
   gateway: string
   transactionDate: string
   accountNumber: string
-  code: string | null        // order code từ nội dung CK
+  code: string | null
   content: string
   transferType: 'in' | 'out'
   transferAmount: number
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, skip: 'outgoing' })
   }
 
-  // 3. Tìm order code trong nội dung (AICD-PLAN-XXXXX)
+  // 3. Tìm order code AICD trong nội dung chuyển khoản
   const content = payload.content ?? ''
   const match = content.match(/AICD-(STARTER|POPULAR|YEARLY)-([A-Z0-9]+)/i)
   if (!match) {
@@ -41,8 +42,9 @@ export async function POST(req: NextRequest) {
   const orderCode = `AICD-${match[1].toUpperCase()}-${match[2].toUpperCase()}`
   const expected  = PLAN_AMOUNTS[planKey]
 
-  // 4. Kiểm tra số tiền (chấp nhận ≥ expected, tránh reject do phí chuyển)
+  // 4. Kiểm tra số tiền
   if (payload.transferAmount < expected - 1000) {
+    await notifyError('SePay webhook', `Số tiền không đủ: ${payload.transferAmount} < ${expected} cho ${orderCode}`).catch(() => {})
     return NextResponse.json({ success: false, reason: `Amount ${payload.transferAmount} < ${expected}` })
   }
 
@@ -56,6 +58,7 @@ export async function POST(req: NextRequest) {
     .maybeSingle()
 
   if (findErr || !sub) {
+    await notifyError('SePay webhook', `Không tìm thấy subscriber cho order: ${orderCode}`).catch(() => {})
     return NextResponse.json({ success: false, reason: 'subscriber_not_found', orderCode })
   }
 
@@ -68,7 +71,17 @@ export async function POST(req: NextRequest) {
     amount_paid: payload.transferAmount,
   }).eq('id', sub.id)
 
-  // 7. Gửi email chào mừng
+  // 7. Thông báo Telegram ngay lập tức
+  await notifyPayment({
+    email:     sub.email,
+    plan:      planKey,
+    amount:    payload.transferAmount,
+    orderCode,
+    sepayRef:  payload.referenceCode,
+    bank:      payload.gateway,
+  }).catch(e => console.error('Telegram notify failed:', e))
+
+  // 8. Gửi email chào mừng
   try {
     await sendWelcomeEmail(sub.email, sub.name || 'bạn')
   } catch (e) {
