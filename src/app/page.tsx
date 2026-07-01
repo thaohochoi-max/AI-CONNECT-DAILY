@@ -1,7 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Image from 'next/image'
+
+const PLAN_VND: Record<string, number> = { starter: 125000, popular: 375000, yearly: 2475000 }
+function fmtVnd(n: number) { return n.toLocaleString('vi-VN') + 'đ' }
 
 /* ── Watermark SVG (inline, không cần file) ── */
 function WatermarkSVG() {
@@ -66,132 +69,225 @@ const BANK_ID = 'TPBank'
 const MOMO_PHONE = '0949331357'
 
 function PaymentModal({ plan, onClose }: { plan: 'starter' | 'popular' | 'yearly'; onClose: () => void }) {
-  const [tab, setTab] = useState<'stripe' | 'momo' | 'bank' | 'zalo'>('stripe')
-  const price = plan === 'starter' ? '$5' : plan === 'popular' ? '$15' : '$99'
-  const label = plan === 'starter' ? 'Gói Trải Nghiệm' : plan === 'popular' ? 'Gói Phổ Biến' : 'Gói Hàng Năm'
-  const vndRaw = plan === 'starter' ? 125000 : plan === 'popular' ? 375000 : 2475000
-  const vndAmount = plan === 'starter' ? '125,000đ' : plan === 'popular' ? '375,000đ' : '2,475,000đ'
-  const addInfo = encodeURIComponent(`AICD ${plan.toUpperCase()}`)
-  const vietQRUrl = `https://img.vietqr.io/image/${BANK_ID}-${BANK_ACCOUNT}-compact2.png?amount=${vndRaw}&addInfo=${addInfo}&accountName=${encodeURIComponent(BANK_NAME)}`
+  const price  = plan === 'starter' ? '$5' : plan === 'popular' ? '$15' : '$99'
+  const label  = plan === 'starter' ? 'Gói Trải Nghiệm' : plan === 'popular' ? 'Gói Phổ Biến' : 'Gói Hàng Năm'
+  const vndAmt = PLAN_VND[plan] ?? 0
+
+  // Step 1: nhập email → Step 2: hiện QR + order code
+  const [step, setStep]       = useState<'email' | 'payment'>('email')
+  const [email, setEmail]     = useState('')
+  const [name, setName]       = useState('')
+  const [loading, setLoading] = useState(false)
+  const [orderCode, setOrderCode] = useState('')
+  const [qrUrl, setQrUrl]     = useState('')
+  const [tab, setTab]         = useState<'bank' | 'momo' | 'zalo'>('bank')
+  const [copied, setCopied]   = useState(false)
+
+  const handleCreateOrder = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email.includes('@')) return
+    setLoading(true)
+    try {
+      const res  = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name, plan }),
+      })
+      const data = await res.json()
+      if (data.orderCode) {
+        setOrderCode(data.orderCode)
+        setQrUrl(data.qrUrl)
+        setStep('payment')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [email, name, plan])
+
+  const copyCode = () => {
+    navigator.clipboard.writeText(orderCode)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   const tabs = [
-    { id: 'stripe', label: '💳 Thẻ quốc tế' },
-    { id: 'momo',   label: '📱 MoMo' },
-    { id: 'bank',   label: '🏦 Ngân hàng' },
-    { id: 'zalo',   label: '💬 Zalo' },
-  ] as const
+    { id: 'bank' as const, label: '🏦 Ngân hàng / QR' },
+    { id: 'momo' as const, label: '📱 MoMo' },
+    { id: 'zalo' as const, label: '💬 Zalo' },
+  ]
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)' }}>
+      style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)' }}>
       <div className="w-full max-w-md rounded-2xl overflow-hidden"
-        style={{ background: '#0D0D0D', border: '1px solid rgba(212,175,55,0.3)' }}>
+        style={{ background: '#0A0A0A', border: '1px solid rgba(212,175,55,0.35)' }}>
+
         {/* Header */}
         <div className="px-6 py-4 flex items-center justify-between"
-          style={{ borderBottom: '1px solid rgba(212,175,55,0.15)' }}>
+          style={{ borderBottom: '1px solid rgba(212,175,55,0.12)' }}>
           <div>
-            <p className="text-xs tracking-widest uppercase" style={{ color: '#D4AF37' }}>Thanh toán</p>
-            <p className="text-white font-bold">{label} — {price}</p>
+            <p className="text-xs tracking-widest uppercase" style={{ color: '#D4AF37' }}>
+              {step === 'email' ? 'Đăng ký' : 'Thanh toán'}
+            </p>
+            <p className="font-bold text-white">{label} — {price}</p>
           </div>
           <button onClick={onClose} className="text-zinc-500 hover:text-white text-2xl leading-none">×</button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b" style={{ borderColor: 'rgba(212,175,55,0.1)' }}>
-          {tabs.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              className="flex-1 py-3 text-xs font-semibold transition"
-              style={{
-                color: tab === t.id ? '#D4AF37' : 'rgba(212,175,55,0.4)',
-                borderBottom: tab === t.id ? '2px solid #D4AF37' : '2px solid transparent',
-                background: 'transparent',
-              }}>
-              {t.label}
+        {/* ── STEP 1: EMAIL ── */}
+        {step === 'email' && (
+          <form onSubmit={handleCreateOrder} className="p-6 space-y-4">
+            <p className="text-sm text-center" style={{ color: '#C9A96E' }}>
+              Nhập email để tạo đơn hàng và nhận mã thanh toán riêng
+            </p>
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Họ tên (tuỳ chọn)"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl text-white placeholder:text-zinc-600 text-sm focus:outline-none"
+                style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.2)' }}
+              />
+              <input
+                type="email"
+                placeholder="Email nhận bản tin *"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                autoFocus
+                className="w-full px-4 py-3 rounded-xl text-white placeholder:text-zinc-600 text-sm focus:outline-none"
+                style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.2)' }}
+              />
+            </div>
+            <button type="submit" disabled={loading || !email.includes('@')}
+              className="w-full py-4 rounded-xl font-bold text-black tracking-wider transition hover:opacity-90 disabled:opacity-50"
+              style={{ background: 'linear-gradient(135deg, #B8860B, #D4AF37, #FFD700, #D4AF37, #B8860B)' }}>
+              {loading ? 'Đang tạo đơn...' : `Tạo đơn hàng ${fmtVnd(vndAmt)} →`}
             </button>
-          ))}
-        </div>
+            <p className="text-xs text-center" style={{ color: 'rgba(212,175,55,0.35)' }}>
+              Email sẽ nhận bản tin AI hàng ngày · Hủy bất cứ lúc nào
+            </p>
+          </form>
+        )}
 
-        {/* Content */}
-        <div className="p-6">
-          {tab === 'stripe' && (
-            <div className="text-center space-y-4">
-              <p className="text-sm" style={{ color: '#C9A96E' }}>Thanh toán an toàn bằng thẻ Visa / Mastercard / Amex</p>
-              <a href="#" onClick={e => e.preventDefault()}
-                className="block w-full py-4 rounded-xl font-bold text-black text-base tracking-wider transition hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg, #B8860B, #D4AF37, #FFD700, #D4AF37, #B8860B)' }}>
-                Thanh toán {price} qua Stripe →
-              </a>
-              <p className="text-xs" style={{ color: 'rgba(212,175,55,0.4)' }}>🔒 Bảo mật 256-bit SSL · Hủy bất cứ lúc nào</p>
-            </div>
-          )}
-
-          {tab === 'momo' && (
-            <div className="text-center space-y-4">
-              <p className="text-sm" style={{ color: '#C9A96E' }}>Chuyển MoMo đến số điện thoại bên dưới</p>
-              <div className="rounded-xl p-5 text-left space-y-3"
-                style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.2)' }}>
-                <div>
-                  <p className="text-xs mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>SĐT nhận tiền MoMo</p>
-                  <p className="text-xl font-black tracking-widest" style={{ color: '#FFD700' }}>{MOMO_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</p>
-                  <p className="text-xs mt-0.5" style={{ color: 'rgba(212,175,55,0.4)' }}>{BANK_NAME}</p>
-                </div>
-                <div style={{ borderTop: '1px solid rgba(212,175,55,0.1)', paddingTop: 12 }}>
-                  <p className="text-xs mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>Số tiền</p>
-                  <p className="text-white font-bold">{vndAmount}</p>
-                </div>
-                <div style={{ borderTop: '1px solid rgba(212,175,55,0.1)', paddingTop: 12 }}>
-                  <p className="text-xs mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>Nội dung chuyển khoản</p>
-                  <p className="text-white font-mono text-sm">AICD {plan.toUpperCase()} [email của bạn]</p>
-                </div>
+        {/* ── STEP 2: PAYMENT ── */}
+        {step === 'payment' && (
+          <>
+            {/* Order code banner */}
+            <div className="mx-6 mt-5 rounded-xl px-4 py-3 flex items-center justify-between gap-3"
+              style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.3)' }}>
+              <div>
+                <p className="text-xs" style={{ color: 'rgba(212,175,55,0.6)' }}>Mã đơn hàng của bạn</p>
+                <p className="font-mono font-bold tracking-wider" style={{ color: '#FFD700' }}>{orderCode}</p>
               </div>
-              <p className="text-xs" style={{ color: 'rgba(212,175,55,0.4)' }}>
-                Sau khi chuyển, nhắn Zalo để kích hoạt trong 1 giờ
-              </p>
+              <button onClick={copyCode}
+                className="text-xs px-3 py-1.5 rounded-lg transition shrink-0"
+                style={{ background: copied ? 'rgba(34,197,94,0.15)' : 'rgba(212,175,55,0.12)',
+                  border: '1px solid rgba(212,175,55,0.25)', color: copied ? '#4ade80' : '#D4AF37' }}>
+                {copied ? '✓ Đã copy' : 'Copy'}
+              </button>
             </div>
-          )}
 
-          {tab === 'bank' && (
-            <div>
-              <p className="text-sm text-center mb-3" style={{ color: '#C9A96E' }}>Quét mã VietQR hoặc chuyển khoản TPBank</p>
-              {/* VietQR động — tự điền số tiền + nội dung */}
-              <div className="mx-auto mb-4 rounded-xl overflow-hidden flex items-center justify-center"
-                style={{ width: 180, height: 180, background: 'white', padding: 6 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={vietQRUrl} alt="QR TPBank" width={168} height={168} style={{ objectFit: 'contain' }} />
-              </div>
-              {[
-                ['Ngân hàng', 'TPBank'],
-                ['Số tài khoản', '7326 6666 686'],
-                ['Tên chủ TK', 'PHẠM THỊ THÚY NGÂN'],
-                ['Số tiền', vndAmount],
-                ['Nội dung CK', `AICD ${plan.toUpperCase()} [email]`],
-              ].map(([lbl, value]) => (
-                <div key={lbl} className="flex justify-between items-center py-2"
-                  style={{ borderBottom: '1px solid rgba(212,175,55,0.08)' }}>
-                  <span className="text-xs" style={{ color: 'rgba(212,175,55,0.5)' }}>{lbl}</span>
-                  <span className="text-sm text-white font-medium text-right">{value}</span>
-                </div>
+            {/* Tabs */}
+            <div className="flex mt-4 mx-6 rounded-xl overflow-hidden"
+              style={{ border: '1px solid rgba(212,175,55,0.15)' }}>
+              {tabs.map(t => (
+                <button key={t.id} onClick={() => setTab(t.id)}
+                  className="flex-1 py-2.5 text-xs font-semibold transition"
+                  style={{
+                    color: tab === t.id ? '#000' : 'rgba(212,175,55,0.5)',
+                    background: tab === t.id
+                      ? 'linear-gradient(135deg,#B8860B,#D4AF37,#FFD700)'
+                      : 'transparent',
+                  }}>
+                  {t.label}
+                </button>
               ))}
-              <p className="text-xs text-center pt-3" style={{ color: 'rgba(212,175,55,0.4)' }}>
-                QR tự điền số tiền · Sau khi chuyển, nhắn Zalo kích hoạt trong 1h
-              </p>
             </div>
-          )}
 
-          {tab === 'zalo' && (
-            <div className="text-center space-y-4">
-              <p className="text-sm" style={{ color: '#C9A96E' }}>Nhắn vào nhóm Zalo để đăng ký — hỗ trợ nhanh</p>
-              <a href="https://zalo.me/g/s4z2fsnceun3fobbzjhd" target="_blank" rel="noopener noreferrer"
-                className="block w-full py-4 rounded-xl font-bold text-black tracking-wider transition hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg, #B8860B, #D4AF37, #FFD700, #D4AF37, #B8860B)' }}>
-                💬 Vào nhóm Zalo ngay →
-              </a>
-              <p className="text-xs" style={{ color: 'rgba(212,175,55,0.4)' }}>
-                Ghi rõ: &quot;Đăng ký {label}&quot; — Admin phản hồi trong 30 phút
-              </p>
+            <div className="p-6 pt-4">
+
+              {/* Bank / VietQR tab */}
+              {tab === 'bank' && (
+                <div>
+                  {/* VietQR — mã order được nhúng làm nội dung */}
+                  <div className="mx-auto mb-4 rounded-2xl overflow-hidden flex items-center justify-center"
+                    style={{ width: 200, height: 200, background: 'white', padding: 8 }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={qrUrl} alt="QR TPBank" width={184} height={184} style={{ objectFit: 'contain' }} />
+                  </div>
+                  {[
+                    ['Ngân hàng', 'TPBank'],
+                    ['Số tài khoản', '7326 6666 686'],
+                    ['Tên chủ TK', 'PHẠM THỊ THÚY NGÂN'],
+                    ['Số tiền', fmtVnd(vndAmt)],
+                    ['Nội dung CK', orderCode],
+                  ].map(([lbl, val]) => (
+                    <div key={lbl} className="flex justify-between items-center py-2"
+                      style={{ borderBottom: '1px solid rgba(212,175,55,0.07)' }}>
+                      <span className="text-xs" style={{ color: 'rgba(212,175,55,0.45)' }}>{lbl}</span>
+                      <span className="text-sm text-white font-medium"
+                        style={lbl === 'Nội dung CK' ? { color: '#FFD700', fontFamily: 'monospace' } : {}}>
+                        {val}
+                      </span>
+                    </div>
+                  ))}
+                  <p className="text-xs text-center mt-3" style={{ color: 'rgba(212,175,55,0.4)' }}>
+                    QR tự điền số tiền · Hệ thống tự kích hoạt trong ~5 phút sau khi nhận tiền
+                  </p>
+                </div>
+              )}
+
+              {/* MoMo tab */}
+              {tab === 'momo' && (
+                <div className="space-y-4">
+                  <div className="rounded-xl p-4 space-y-3"
+                    style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.15)' }}>
+                    <div>
+                      <p className="text-xs mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>SĐT nhận tiền MoMo</p>
+                      <p className="text-xl font-black tracking-widest" style={{ color: '#FFD700' }}>
+                        {MOMO_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: 'rgba(212,175,55,0.4)' }}>{BANK_NAME}</p>
+                    </div>
+                    <div style={{ borderTop: '1px solid rgba(212,175,55,0.1)', paddingTop: 10 }}>
+                      <p className="text-xs mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>Số tiền</p>
+                      <p className="text-white font-bold">{fmtVnd(vndAmt)}</p>
+                    </div>
+                    <div style={{ borderTop: '1px solid rgba(212,175,55,0.1)', paddingTop: 10 }}>
+                      <p className="text-xs mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>Nội dung — ghi đúng mã này</p>
+                      <p className="font-mono font-bold" style={{ color: '#FFD700' }}>{orderCode}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-center" style={{ color: 'rgba(212,175,55,0.4)' }}>
+                    Hệ thống tự kích hoạt sau ~5 phút · hoặc nhắn Zalo nếu chờ lâu hơn
+                  </p>
+                </div>
+              )}
+
+              {/* Zalo tab */}
+              {tab === 'zalo' && (
+                <div className="text-center space-y-4">
+                  <p className="text-sm" style={{ color: '#C9A96E' }}>Nhắn vào nhóm Zalo — admin xác nhận thủ công</p>
+                  <a href="https://zalo.me/g/s4z2fsnceun3fobbzjhd" target="_blank" rel="noopener noreferrer"
+                    className="block w-full py-4 rounded-xl font-bold text-black tracking-wider transition hover:opacity-90"
+                    style={{ background: 'linear-gradient(135deg, #B8860B, #D4AF37, #FFD700, #D4AF37, #B8860B)' }}>
+                    💬 Vào nhóm Zalo ngay →
+                  </a>
+                  <div className="rounded-xl p-3 text-left"
+                    style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.12)' }}>
+                    <p className="text-xs mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>Gửi tin nhắn kèm mã đơn hàng</p>
+                    <p className="text-sm font-mono" style={{ color: '#FFD700' }}>
+                      Đăng ký {label} · {orderCode}
+                    </p>
+                  </div>
+                </div>
+              )}
+
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   )
