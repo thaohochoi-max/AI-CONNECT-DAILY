@@ -27,10 +27,10 @@ const STATUS_COLOR: Record<string, string> = {
 function LoginGate({ onLogin }: { onLogin: (s: string) => void }) {
   const [val, setVal] = useState('')
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-black flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-white text-center mb-2">🛠️ Admin</h1>
-        <p className="text-slate-400 text-center text-sm mb-8">Nhập CRON_SECRET để tiếp tục</p>
+        <h1 className="text-2xl font-bold text-center mb-2" style={{ color: '#D4AF37' }}>AI Connect Daily</h1>
+        <p className="text-center text-sm mb-8" style={{ color: '#8a7a50' }}>Admin — Nhập CRON_SECRET để tiếp tục</p>
         <form onSubmit={e => { e.preventDefault(); if (val) { localStorage.setItem('admin_secret', val); onLogin(val) } }}
           className="flex flex-col gap-3">
           <input
@@ -39,10 +39,12 @@ function LoginGate({ onLogin }: { onLogin: (s: string) => void }) {
             value={val}
             onChange={e => setVal(e.target.value)}
             autoFocus
-            className="px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-400"
+            className="px-4 py-3 rounded-xl text-white placeholder:text-stone-600 focus:outline-none"
+            style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.3)' }}
           />
           <button type="submit"
-            className="py-3 bg-purple-600 hover:bg-purple-500 rounded-xl font-medium text-white transition">
+            className="py-3 rounded-xl font-semibold transition"
+            style={{ background: 'linear-gradient(135deg,#B8860B,#D4AF37)', color: '#000' }}>
             Đăng nhập
           </button>
         </form>
