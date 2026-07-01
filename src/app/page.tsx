@@ -1,10 +1,250 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import Image from 'next/image'
 
 const PLAN_VND: Record<string, number> = { starter: 125000, popular: 375000, yearly: 2475000 }
+const PLAN_USD: Record<string, string> = { starter: '$5', popular: '$15', yearly: '$99' }
+const PLAN_LABEL: Record<string, string> = { starter: 'Gói Trải Nghiệm', popular: 'Gói Phổ Biến', yearly: 'Gói Hàng Năm' }
 function fmtVnd(n: number) { return n.toLocaleString('vi-VN') + 'đ' }
+
+/* ── Inline QR Payment Section ── */
+function InlinePayment() {
+  const [plan, setPlan]         = useState<'starter' | 'popular' | 'yearly'>('popular')
+  const [email, setEmail]       = useState('')
+  const [qrUrl, setQrUrl]       = useState('')
+  const [orderCode, setOrderCode] = useState('')
+  const [loading, setLoading]   = useState(false)
+  const [done, setDone]         = useState(false)
+  const [copied, setCopied]     = useState(false)
+  const [tab, setTab]           = useState<'bank' | 'momo'>('bank')
+  const debounceRef             = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const vnd = PLAN_VND[plan]
+
+  // QR không cần order code — dùng VietQR trực tiếp theo số tiền
+  const staticQr = `https://img.vietqr.io/image/TPBank-73266666686-compact2.png?amount=${vnd}&addInfo=${encodeURIComponent('AICD ' + plan.toUpperCase())}&accountName=${encodeURIComponent('PHAM THI THUY NGAN')}`
+
+  // Khi có email hợp lệ → gọi /api/checkout để sinh order code cá nhân
+  const generateOrder = useCallback(async (emailVal: string, planVal: string) => {
+    if (!emailVal.includes('@') || !emailVal.includes('.')) {
+      setQrUrl('')
+      setOrderCode('')
+      return
+    }
+    setLoading(true)
+    try {
+      const res  = await fetch('/api/checkout', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email: emailVal, plan: planVal }),
+      })
+      const data = await res.json()
+      if (data.orderCode) {
+        setOrderCode(data.orderCode)
+        setQrUrl(data.qrUrl)
+      }
+    } catch { /* ignore */ }
+    finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => generateOrder(email, plan), 600)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [email, plan, generateOrder])
+
+  const displayQr   = qrUrl || staticQr
+  const displayCode = orderCode || `AICD ${plan.toUpperCase()}`
+
+  const copy = () => {
+    navigator.clipboard.writeText(displayCode)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const plans = [
+    { id: 'starter' as const,  label: 'Trải Nghiệm', price: '$5' },
+    { id: 'popular' as const,  label: 'Phổ Biến',     price: '$15' },
+    { id: 'yearly'  as const,  label: 'Hàng Năm',     price: '$99' },
+  ]
+
+  return (
+    <section id="payment" className="py-20 px-4" style={{ borderTop: '1px solid rgba(212,175,55,0.12)' }}>
+      <div className="max-w-4xl mx-auto">
+        <p className="text-center text-xs tracking-[0.3em] uppercase mb-3" style={{ color: '#D4AF37' }}>Thanh Toán</p>
+        <h2 className="text-3xl md:text-4xl font-black text-center mb-2 text-white">Quét QR — Kích hoạt ngay</h2>
+        <p className="text-center text-sm mb-10" style={{ color: 'rgba(212,175,55,0.45)' }}>
+          Chọn gói · Nhập email · Quét QR chuyển khoản · Hệ thống tự động kích hoạt
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+
+          {/* ── LEFT: Plan + Email ── */}
+          <div className="space-y-5">
+            {/* Plan selector */}
+            <div>
+              <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'rgba(212,175,55,0.5)' }}>1. Chọn gói</p>
+              <div className="grid grid-cols-3 gap-2">
+                {plans.map(p => (
+                  <button key={p.id} onClick={() => setPlan(p.id)}
+                    className="rounded-xl py-3 px-2 text-center transition-all"
+                    style={{
+                      background: plan === p.id ? 'linear-gradient(135deg,#B8860B,#D4AF37,#FFD700)' : 'rgba(212,175,55,0.06)',
+                      border: plan === p.id ? '1px solid #FFD700' : '1px solid rgba(212,175,55,0.2)',
+                      color: plan === p.id ? '#000' : '#C9A96E',
+                      boxShadow: plan === p.id ? '0 0 20px rgba(212,175,55,0.3)' : 'none',
+                    }}>
+                    <p className="text-xs font-semibold">{p.label}</p>
+                    <p className="text-lg font-black">{p.price}</p>
+                    <p className="text-xs opacity-70">{fmtVnd(PLAN_VND[p.id])}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Email input */}
+            <div>
+              <p className="text-xs tracking-widest uppercase mb-3" style={{ color: 'rgba(212,175,55,0.5)' }}>2. Nhập email nhận bản tin</p>
+              <input
+                type="email"
+                placeholder="email@của-bạn.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="w-full px-4 py-3.5 rounded-xl text-white text-sm focus:outline-none transition"
+                style={{
+                  background: 'rgba(212,175,55,0.06)',
+                  border: email.includes('@') ? '1px solid rgba(212,175,55,0.5)' : '1px solid rgba(212,175,55,0.2)',
+                }}
+              />
+              {loading && (
+                <p className="text-xs mt-2" style={{ color: 'rgba(212,175,55,0.5)' }}>⏳ Đang tạo mã riêng cho bạn...</p>
+              )}
+              {orderCode && !loading && (
+                <p className="text-xs mt-2" style={{ color: '#4ade80' }}>✓ Mã đơn đã sẵn sàng — QR cập nhật tự động</p>
+              )}
+            </div>
+
+            {/* Order code + copy */}
+            <div className="rounded-xl p-4" style={{ background: 'rgba(212,175,55,0.07)', border: '1px solid rgba(212,175,55,0.2)' }}>
+              <p className="text-xs mb-2" style={{ color: 'rgba(212,175,55,0.5)' }}>3. Nội dung chuyển khoản (ghi đúng)</p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-mono font-bold text-sm" style={{ color: '#FFD700' }}>{displayCode}</p>
+                <button onClick={copy}
+                  className="text-xs px-3 py-1.5 rounded-lg shrink-0 transition"
+                  style={{
+                    background: copied ? 'rgba(34,197,94,0.15)' : 'rgba(212,175,55,0.12)',
+                    border: '1px solid rgba(212,175,55,0.25)',
+                    color: copied ? '#4ade80' : '#D4AF37',
+                  }}>
+                  {copied ? '✓ Đã copy' : 'Copy'}
+                </button>
+              </div>
+            </div>
+
+            {/* Bank info */}
+            <div className="space-y-0 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(212,175,55,0.15)' }}>
+              {[
+                ['Ngân hàng', 'TPBank'],
+                ['Số tài khoản', '7326 6666 686'],
+                ['Chủ tài khoản', 'PHẠM THỊ THÚY NGÂN'],
+                ['Số tiền', fmtVnd(vnd)],
+              ].map(([k, v], i) => (
+                <div key={k} className="flex justify-between items-center px-4 py-3"
+                  style={{ background: i % 2 === 0 ? 'rgba(212,175,55,0.04)' : 'rgba(0,0,0,0.3)', borderBottom: i < 3 ? '1px solid rgba(212,175,55,0.07)' : 'none' }}>
+                  <span className="text-xs" style={{ color: 'rgba(212,175,55,0.5)' }}>{k}</span>
+                  <span className="text-sm font-semibold text-white">{v}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Done button */}
+            {!done ? (
+              <button onClick={() => setDone(true)}
+                className="w-full py-3.5 rounded-xl text-sm font-semibold transition"
+                style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.3)', color: '#D4AF37' }}>
+                ✓ Tôi đã chuyển khoản xong
+              </button>
+            ) : (
+              <div className="rounded-xl p-4 text-center" style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)' }}>
+                <p className="text-sm font-semibold" style={{ color: '#4ade80' }}>Cảm ơn! Hệ thống đang xác nhận...</p>
+                <p className="text-xs mt-1" style={{ color: 'rgba(34,197,94,0.6)' }}>Email kích hoạt sẽ đến trong 5 phút · Kiểm tra cả mục Spam</p>
+              </div>
+            )}
+          </div>
+
+          {/* ── RIGHT: QR ── */}
+          <div className="flex flex-col items-center">
+            {/* Tab bank / momo */}
+            <div className="flex rounded-xl overflow-hidden mb-5 w-full max-w-xs"
+              style={{ border: '1px solid rgba(212,175,55,0.2)' }}>
+              {(['bank', 'momo'] as const).map(t => (
+                <button key={t} onClick={() => setTab(t)}
+                  className="flex-1 py-2.5 text-xs font-semibold transition"
+                  style={{
+                    background: tab === t ? 'linear-gradient(135deg,#B8860B,#D4AF37,#FFD700)' : 'transparent',
+                    color: tab === t ? '#000' : 'rgba(212,175,55,0.5)',
+                  }}>
+                  {t === 'bank' ? '🏦 Ngân hàng / QR' : '📱 MoMo'}
+                </button>
+              ))}
+            </div>
+
+            {tab === 'bank' && (
+              <>
+                {/* QR Box */}
+                <div className="relative rounded-2xl overflow-hidden mb-4"
+                  style={{ background: 'white', padding: 12, width: 240, height: 240 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={displayQr} alt="VietQR TPBank" width={216} height={216}
+                    style={{ objectFit: 'contain', width: '100%', height: '100%' }} />
+                  {loading && (
+                    <div className="absolute inset-0 flex items-center justify-center"
+                      style={{ background: 'rgba(255,255,255,0.8)' }}>
+                      <div className="w-8 h-8 rounded-full border-2 border-yellow-400 border-t-transparent animate-spin" />
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-center mb-1" style={{ color: 'rgba(212,175,55,0.6)' }}>
+                  Quét bằng <strong style={{ color: '#D4AF37' }}>bất kỳ app ngân hàng</strong> nào hỗ trợ VietQR
+                </p>
+                <p className="text-xs text-center" style={{ color: 'rgba(212,175,55,0.4)' }}>
+                  QR tự điền số tiền {fmtVnd(vnd)} · {email.includes('@') ? 'Có mã cá nhân' : 'Nhập email để có mã riêng'}
+                </p>
+              </>
+            )}
+
+            {tab === 'momo' && (
+              <div className="w-full max-w-xs space-y-4">
+                <div className="rounded-xl p-5 space-y-3 w-full"
+                  style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.2)' }}>
+                  <div className="text-center">
+                    <p className="text-xs mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>SĐT MoMo nhận tiền</p>
+                    <p className="text-2xl font-black tracking-widest" style={{ color: '#FFD700' }}>0949 331 357</p>
+                    <p className="text-xs mt-1" style={{ color: 'rgba(212,175,55,0.4)' }}>PHẠM THỊ THÚY NGÂN</p>
+                  </div>
+                  <div style={{ borderTop: '1px solid rgba(212,175,55,0.1)', paddingTop: 12 }} className="text-center">
+                    <p className="text-xs mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>Số tiền</p>
+                    <p className="text-xl font-bold text-white">{fmtVnd(vnd)}</p>
+                  </div>
+                  <div style={{ borderTop: '1px solid rgba(212,175,55,0.1)', paddingTop: 12 }}>
+                    <p className="text-xs mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>Nội dung chuyển</p>
+                    <p className="font-mono text-sm font-bold" style={{ color: '#FFD700' }}>{displayCode}</p>
+                  </div>
+                </div>
+                <a href="https://zalo.me/g/s4z2fsnceun3fobbzjhd" target="_blank" rel="noopener noreferrer"
+                  className="block w-full py-3 rounded-xl text-center text-xs font-semibold transition"
+                  style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.2)', color: '#D4AF37' }}>
+                  💬 Nhắn Zalo sau khi chuyển để kích hoạt nhanh
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
 
 /* ── Watermark SVG (inline, không cần file) ── */
 function WatermarkSVG() {
@@ -558,6 +798,11 @@ export default function SalesPage() {
           </div>
         </div>
       </section>
+
+      {/* ════════════════════════════════════
+          INLINE QR PAYMENT
+      ════════════════════════════════════ */}
+      <InlinePayment />
 
       {/* ════════════════════════════════════
           FAQ
