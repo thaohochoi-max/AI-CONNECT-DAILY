@@ -26,6 +26,6 @@ export function verifySepayRequest(req: Request): boolean {
 export function getVietQRUrl(orderCode: string, plan: string): string {
   const amount  = PLAN_AMOUNTS[plan] ?? 0
   const content = encodeURIComponent(orderCode)
-  const name    = encodeURIComponent('PHAM THI THUY NGAN')
-  return `https://img.vietqr.io/image/TPBank-73266666686-compact2.png?amount=${amount}&addInfo=${content}&accountName=${name}`
+  const name    = encodeURIComponent('LE THI THAO')
+  return `https://img.vietqr.io/image/ACB-36998866-compact2.png?amount=${amount}&addInfo=${content}&accountName=${name}`
 }

@@ -23,8 +23,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  const db = getSupabaseAdmin()
-
   // ── /start ──────────────────────────────────────────────────────────────
   if (text === '/start' || text === '/help') {
     await replyTelegram(chatId, [
@@ -42,6 +40,7 @@ export async function POST(req: NextRequest) {
 
   // ── /stats ───────────────────────────────────────────────────────────────
   if (text === '/stats') {
+    const db = getSupabaseAdmin()
     const [{ count: totalSubs }, { count: activeSubs }, { count: totalDigests }] = await Promise.all([
       db.from('subscribers').select('*', { count: 'exact', head: true }),
       db.from('subscribers').select('*', { count: 'exact', head: true }).eq('status', 'active'),
@@ -73,6 +72,7 @@ export async function POST(req: NextRequest) {
 
   // ── /subscribers ─────────────────────────────────────────────────────────
   if (text === '/subscribers') {
+    const db = getSupabaseAdmin()
     const { data } = await db
       .from('subscribers')
       .select('email, plan, status, subscribed_at')

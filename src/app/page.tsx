@@ -23,7 +23,7 @@ function InlinePayment() {
   const vnd = PLAN_VND[plan]
 
   // QR không cần order code — dùng VietQR trực tiếp theo số tiền
-  const staticQr = `https://img.vietqr.io/image/TPBank-73266666686-compact2.png?amount=${vnd}&addInfo=${encodeURIComponent('AICD ' + plan.toUpperCase())}&accountName=${encodeURIComponent('PHAM THI THUY NGAN')}`
+  const staticQr = `https://img.vietqr.io/image/ACB-36998866-compact2.png?amount=${vnd}&addInfo=${encodeURIComponent('AICD ' + plan.toUpperCase())}&accountName=${encodeURIComponent('LE THI THAO')}`
 
   // Khi có email hợp lệ → gọi /api/checkout để sinh order code cá nhân
   const generateOrder = useCallback(async (emailVal: string, planVal: string) => {
@@ -145,7 +145,7 @@ function InlinePayment() {
             {/* Bank info */}
             <div className="space-y-0 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(212,175,55,0.15)' }}>
               {[
-                ['Ngân hàng', 'TPBank'],
+                ['Ngân hàng', 'ACB'],
                 ['Số tài khoản', '7326 6666 686'],
                 ['Chủ tài khoản', 'PHẠM THỊ THÚY NGÂN'],
                 ['Số tiền', fmtVnd(vnd)],
@@ -196,7 +196,7 @@ function InlinePayment() {
                 <div className="relative rounded-2xl overflow-hidden mb-4"
                   style={{ background: 'white', padding: 12, width: 240, height: 240 }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={displayQr} alt="VietQR TPBank" width={216} height={216}
+                  <img src={displayQr} alt="VietQR ACB" width={216} height={216}
                     style={{ objectFit: 'contain', width: '100%', height: '100%' }} />
                   {loading && (
                     <div className="absolute inset-0 flex items-center justify-center"
@@ -303,9 +303,9 @@ function Logo({ size = 180, className = '' }: { size?: number; className?: strin
 }
 
 /* ── Payment modal ── */
-const BANK_ACCOUNT = '73266666686'
-const BANK_NAME = 'PHẠM THỊ THÚY NGÂN'
-const BANK_ID = 'TPBank'
+const BANK_ACCOUNT = '36998866'
+const BANK_NAME = 'LÊ THỊ THẢO'
+const BANK_ID = 'ACB'
 const MOMO_PHONE = '0949331357'
 
 function PaymentModal({ plan, onClose }: { plan: 'starter' | 'popular' | 'yearly'; onClose: () => void }) {
@@ -455,10 +455,10 @@ function PaymentModal({ plan, onClose }: { plan: 'starter' | 'popular' | 'yearly
                   <div className="mx-auto mb-4 rounded-2xl overflow-hidden flex items-center justify-center"
                     style={{ width: 200, height: 200, background: 'white', padding: 8 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={qrUrl} alt="QR TPBank" width={184} height={184} style={{ objectFit: 'contain' }} />
+                    <img src={qrUrl} alt="QR ACB" width={184} height={184} style={{ objectFit: 'contain' }} />
                   </div>
                   {[
-                    ['Ngân hàng', 'TPBank'],
+                    ['Ngân hàng', 'ACB'],
                     ['Số tài khoản', '7326 6666 686'],
                     ['Tên chủ TK', 'PHẠM THỊ THÚY NGÂN'],
                     ['Số tiền', fmtVnd(vndAmt)],

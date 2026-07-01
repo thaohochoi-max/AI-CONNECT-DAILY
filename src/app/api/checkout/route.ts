@@ -32,9 +32,9 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     orderCode,
     amount:        PLAN_AMOUNTS[plan],
-    bank:          'TPBank',
-    accountNumber: '73266666686',
-    accountName:   'PHẠM THỊ THÚY NGÂN',
+    bank:          'ACB',
+    accountNumber: '36998866',
+    accountName:   'LÊ THỊ THẢO',
     qrUrl:         getVietQRUrl(orderCode, plan),
   })
 }
