@@ -66,10 +66,11 @@ function Logo({ size = 180, className = '' }: { size?: number; className?: strin
 }
 
 /* ── Payment modal ── */
-function PaymentModal({ plan, onClose }: { plan: 'monthly' | 'yearly'; onClose: () => void }) {
+function PaymentModal({ plan, onClose }: { plan: 'starter' | 'popular' | 'yearly'; onClose: () => void }) {
   const [tab, setTab] = useState<'stripe' | 'momo' | 'bank' | 'zalo'>('stripe')
-  const price = plan === 'monthly' ? '$9' : '$50'
-  const label = plan === 'monthly' ? 'Gói Tháng' : 'Gói Năm'
+  const price = plan === 'starter' ? '$5' : plan === 'popular' ? '$15' : '$99'
+  const label = plan === 'starter' ? 'Gói Trải Nghiệm' : plan === 'popular' ? 'Gói Phổ Biến' : 'Gói Hàng Năm'
+  const vndAmount = plan === 'starter' ? '~125,000đ' : plan === 'popular' ? '~375,000đ' : '~2,475,000đ'
 
   const tabs = [
     { id: 'stripe', label: '💳 Thẻ quốc tế' },
@@ -145,7 +146,7 @@ function PaymentModal({ plan, onClose }: { plan: 'monthly' | 'yearly'; onClose: 
                 ['Ngân hàng', '[Tên ngân hàng]'],
                 ['Số tài khoản', '[Số tài khoản]'],
                 ['Tên chủ TK', '[Tên chủ tài khoản]'],
-                ['Số tiền', plan === 'monthly' ? '~225,000đ' : '~1,250,000đ'],
+                ['Số tiền', vndAmount],
                 ['Nội dung CK', `AICD ${plan.toUpperCase()} [email của bạn]`],
               ].map(([label, value]) => (
                 <div key={label} className="flex justify-between items-center py-2"
@@ -181,7 +182,7 @@ function PaymentModal({ plan, onClose }: { plan: 'monthly' | 'yearly'; onClose: 
 
 /* ── Main page ── */
 export default function SalesPage() {
-  const [modal, setModal] = useState<null | 'monthly' | 'yearly'>(null)
+  const [modal, setModal] = useState<null | 'starter' | 'popular' | 'yearly'>(null)
 
   return (
     <main className="min-h-screen bg-black text-white overflow-x-hidden">
@@ -325,67 +326,108 @@ export default function SalesPage() {
             Giá tính bằng USD · Thanh toán 1 lần · Kích hoạt ngay
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
 
-            {/* Monthly */}
-            <div className="rounded-2xl p-7 gold-border relative"
+            {/* Tier 1 — Starter */}
+            <div className="rounded-2xl p-6 gold-border relative flex flex-col"
               style={{ background: 'rgba(0,0,0,0.7)' }}>
-              <p className="text-xs tracking-widest uppercase mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>Gói tháng</p>
-              <div className="flex items-end gap-2 mb-1">
-                <span className="text-5xl font-black gold-shimmer">$9</span>
-                <span className="text-sm pb-2" style={{ color: 'rgba(212,175,55,0.5)' }}>/tháng</span>
+              <p className="text-xs tracking-widest uppercase mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>Gói Trải Nghiệm</p>
+              <div className="flex items-end gap-1.5 mb-1">
+                <span className="text-4xl font-black gold-shimmer">$5</span>
+                <span className="text-sm pb-1.5" style={{ color: 'rgba(212,175,55,0.5)' }}>/tháng</span>
               </div>
-              <p className="text-xs mb-6" style={{ color: 'rgba(212,175,55,0.35)' }}>Linh hoạt, hủy bất cứ lúc nào</p>
-              <ul className="space-y-2.5 mb-8">
-                {['Bản tin AI hàng ngày', 'Video tóm tắt 90 giây', 'Giao lúc 3:00 chiều', '4 nguồn tổng hợp', 'Hủy bất cứ lúc nào'].map(f => (
-                  <li key={f} className="flex items-center gap-2 text-sm" style={{ color: '#C9A96E' }}>
-                    <span style={{ color: '#D4AF37' }}>✓</span> {f}
+              <p className="text-xs mb-5" style={{ color: 'rgba(212,175,55,0.35)' }}>Bắt đầu miễn phí rủi ro</p>
+              <ul className="space-y-2 mb-7 flex-1">
+                {[
+                  'Bản tin AI hàng ngày qua email',
+                  'Tóm tắt 3-5 tool nổi bật',
+                  'Giao lúc 3:00 chiều',
+                  '4 nguồn tổng hợp',
+                  'Hủy bất cứ lúc nào',
+                ].map(f => (
+                  <li key={f} className="flex items-start gap-2 text-sm" style={{ color: '#C9A96E' }}>
+                    <span className="mt-0.5 shrink-0" style={{ color: '#D4AF37' }}>✓</span> {f}
                   </li>
                 ))}
               </ul>
-              <button onClick={() => setModal('monthly')}
-                className="w-full py-3.5 rounded-xl font-bold text-sm tracking-wider uppercase transition hover:opacity-90"
+              <button onClick={() => setModal('starter')}
+                className="w-full py-3 rounded-xl font-bold text-sm tracking-wider uppercase transition hover:opacity-90"
                 style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.4)', color: '#D4AF37' }}>
-                Đăng ký tháng →
+                Đăng ký ngay →
               </button>
             </div>
 
-            {/* Yearly — highlighted */}
-            <div className="rounded-2xl p-7 relative overflow-hidden"
+            {/* Tier 2 — Popular (highlighted) */}
+            <div className="rounded-2xl p-6 relative overflow-hidden flex flex-col"
               style={{ background: 'linear-gradient(145deg, #0D0900, #1A1000)', border: '1px solid #D4AF37', boxShadow: '0 0 50px rgba(212,175,55,0.2)' }}>
-              {/* Best value badge */}
               <div className="absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold text-black tracking-wider"
                 style={{ background: 'linear-gradient(135deg, #B8860B, #FFD700)' }}>
-                BEST VALUE
+                PHỔ BIẾN
               </div>
-
-              <p className="text-xs tracking-widest uppercase mb-1" style={{ color: '#D4AF37' }}>Gói năm</p>
-              <div className="flex items-end gap-2 mb-1">
-                <span className="text-5xl font-black gold-shimmer">$50</span>
-                <span className="text-sm pb-2" style={{ color: 'rgba(212,175,55,0.6)' }}>/năm</span>
+              <p className="text-xs tracking-widest uppercase mb-1" style={{ color: '#D4AF37' }}>Gói Phổ Biến</p>
+              <div className="flex items-end gap-1.5 mb-1">
+                <span className="text-4xl font-black gold-shimmer">$15</span>
+                <span className="text-sm pb-1.5" style={{ color: 'rgba(212,175,55,0.6)' }}>/tháng</span>
               </div>
-              <div className="flex items-center gap-2 mb-6">
-                <span className="text-xs line-through" style={{ color: 'rgba(212,175,55,0.3)' }}>$108</span>
-                <span className="text-xs px-2 py-0.5 rounded-full font-bold"
-                  style={{ background: 'rgba(212,175,55,0.15)', color: '#D4AF37' }}>
-                  Tiết kiệm $58
-                </span>
-              </div>
-
-              <ul className="space-y-2.5 mb-8">
-                {['Tất cả tính năng gói tháng', 'Tiết kiệm $58 so với tháng', '12 tháng không lo gia hạn', 'Ưu tiên hỗ trợ VIP', 'Bonus tài nguyên AI độc quyền'].map(f => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-white">
-                    <span style={{ color: '#D4AF37' }}>✦</span> {f}
+              <p className="text-xs mb-5" style={{ color: 'rgba(212,175,55,0.35)' }}>Được yêu thích nhất</p>
+              <ul className="space-y-2 mb-7 flex-1">
+                {[
+                  'Tất cả tính năng Trải Nghiệm',
+                  'Kết nối cộng đồng AI exclusive',
+                  'Group chat + Q&A hàng tuần',
+                  'Chia sẻ tool bởi cộng đồng',
+                  'Ưu tiên hỗ trợ qua Zalo',
+                ].map(f => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-white">
+                    <span className="mt-0.5 shrink-0" style={{ color: '#D4AF37' }}>✦</span> {f}
                   </li>
                 ))}
               </ul>
-
-              <button onClick={() => setModal('yearly')}
-                className="w-full py-4 rounded-xl font-bold text-black text-base tracking-widest uppercase transition hover:opacity-90 hover:scale-[1.02]"
+              <button onClick={() => setModal('popular')}
+                className="w-full py-3.5 rounded-xl font-bold text-black text-sm tracking-widest uppercase transition hover:opacity-90 hover:scale-[1.02]"
                 style={{ background: 'linear-gradient(135deg, #B8860B 0%, #D4AF37 40%, #FFD700 60%, #D4AF37 80%, #B8860B 100%)', boxShadow: '0 4px 24px rgba(212,175,55,0.4)' }}>
-                ✦ Đăng ký năm ngay
+                ✦ Đăng ký ngay
               </button>
-              <p className="text-center text-xs mt-3" style={{ color: 'rgba(212,175,55,0.4)' }}>Tương đương ~$4.2/tháng</p>
+            </div>
+
+            {/* Tier 3 — Yearly */}
+            <div className="rounded-2xl p-6 gold-border relative flex flex-col"
+              style={{ background: 'rgba(5,3,0,0.85)' }}>
+              <div className="absolute top-4 right-4 px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wider"
+                style={{ background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.35)', color: '#D4AF37' }}>
+                TIẾT KIỆM NHẤT
+              </div>
+              <p className="text-xs tracking-widest uppercase mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>Gói Hàng Năm</p>
+              <div className="flex items-end gap-1.5 mb-1">
+                <span className="text-4xl font-black gold-shimmer">$99</span>
+                <span className="text-sm pb-1.5" style={{ color: 'rgba(212,175,55,0.5)' }}>/năm</span>
+              </div>
+              <div className="flex items-center gap-2 mb-5">
+                <span className="text-xs line-through" style={{ color: 'rgba(212,175,55,0.3)' }}>$180</span>
+                <span className="text-xs px-2 py-0.5 rounded-full font-bold"
+                  style={{ background: 'rgba(212,175,55,0.12)', color: '#D4AF37' }}>
+                  Tiết kiệm $81
+                </span>
+              </div>
+              <ul className="space-y-2 mb-7 flex-1">
+                {[
+                  'Tất cả tính năng Phổ Biến',
+                  'Bản tin video 2 lần / ngày',
+                  '12 tháng không lo gia hạn',
+                  'Ưu tiên hỗ trợ VIP',
+                  'Bonus tài nguyên AI độc quyền',
+                ].map(f => (
+                  <li key={f} className="flex items-start gap-2 text-sm" style={{ color: '#C9A96E' }}>
+                    <span className="mt-0.5 shrink-0" style={{ color: '#D4AF37' }}>✓</span> {f}
+                  </li>
+                ))}
+              </ul>
+              <button onClick={() => setModal('yearly')}
+                className="w-full py-3 rounded-xl font-bold text-sm tracking-wider uppercase transition hover:opacity-90"
+                style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid rgba(212,175,55,0.4)', color: '#D4AF37' }}>
+                Đăng ký năm →
+              </button>
+              <p className="text-center text-xs mt-2.5" style={{ color: 'rgba(212,175,55,0.35)' }}>Tương đương ~$8.3/tháng</p>
             </div>
           </div>
 
@@ -434,18 +476,18 @@ export default function SalesPage() {
             <br /><span className="text-white text-2xl">từ chiều hôm nay</span>
           </h2>
           <p className="text-sm mb-8" style={{ color: 'rgba(212,175,55,0.5)' }}>
-            Chỉ $9/tháng · Hủy bất cứ lúc nào · Kích hoạt ngay
+            Từ $5/tháng · Kích hoạt ngay · Hủy bất cứ lúc nào
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button onClick={() => setModal('yearly')}
+            <button onClick={() => setModal('popular')}
               className="px-8 py-4 rounded-xl font-bold text-black tracking-widest uppercase transition hover:opacity-90 hover:scale-105"
               style={{ background: 'linear-gradient(135deg, #B8860B, #D4AF37, #FFD700, #D4AF37, #B8860B)', boxShadow: '0 0 40px rgba(212,175,55,0.3)' }}>
-              ✦ Gói Năm — $50
+              ✦ Gói Phổ Biến — $15/tháng
             </button>
-            <button onClick={() => setModal('monthly')}
+            <button onClick={() => setModal('starter')}
               className="px-8 py-4 rounded-xl font-bold tracking-widest uppercase transition hover:opacity-90"
               style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.35)', color: '#D4AF37' }}>
-              Gói Tháng — $9
+              Gói Trải Nghiệm — $5/tháng
             </button>
           </div>
         </div>
