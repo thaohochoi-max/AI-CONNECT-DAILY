@@ -66,11 +66,19 @@ function Logo({ size = 180, className = '' }: { size?: number; className?: strin
 }
 
 /* ── Payment modal ── */
+const BANK_ACCOUNT = '73266666686'
+const BANK_NAME = 'PHẠM THỊ THÚY NGÂN'
+const BANK_ID = 'TPBank'
+const MOMO_PHONE = '0949331357'
+
 function PaymentModal({ plan, onClose }: { plan: 'starter' | 'popular' | 'yearly'; onClose: () => void }) {
   const [tab, setTab] = useState<'stripe' | 'momo' | 'bank' | 'zalo'>('stripe')
   const price = plan === 'starter' ? '$5' : plan === 'popular' ? '$15' : '$99'
   const label = plan === 'starter' ? 'Gói Trải Nghiệm' : plan === 'popular' ? 'Gói Phổ Biến' : 'Gói Hàng Năm'
-  const vndAmount = plan === 'starter' ? '~125,000đ' : plan === 'popular' ? '~375,000đ' : '~2,475,000đ'
+  const vndRaw = plan === 'starter' ? 125000 : plan === 'popular' ? 375000 : 2475000
+  const vndAmount = plan === 'starter' ? '125,000đ' : plan === 'popular' ? '375,000đ' : '2,475,000đ'
+  const addInfo = encodeURIComponent(`AICD ${plan.toUpperCase()}`)
+  const vietQRUrl = `https://img.vietqr.io/image/${BANK_ID}-${BANK_ACCOUNT}-compact2.png?amount=${vndRaw}&addInfo=${addInfo}&accountName=${encodeURIComponent(BANK_NAME)}`
 
   const tabs = [
     { id: 'stripe', label: '💳 Thẻ quốc tế' },
@@ -125,52 +133,67 @@ function PaymentModal({ plan, onClose }: { plan: 'starter' | 'popular' | 'yearly
 
           {tab === 'momo' && (
             <div className="text-center space-y-4">
-              <p className="text-sm mb-3" style={{ color: '#C9A96E' }}>Quét mã MoMo hoặc chuyển đến số điện thoại</p>
-              <div className="mx-auto w-40 h-40 rounded-xl flex items-center justify-center"
-                style={{ background: 'rgba(212,175,55,0.05)', border: '1px dashed rgba(212,175,55,0.3)' }}>
-                <span className="text-xs text-center" style={{ color: 'rgba(212,175,55,0.4)' }}>QR Code<br/>MoMo<br/>(cập nhật sau)</span>
+              <p className="text-sm" style={{ color: '#C9A96E' }}>Chuyển MoMo đến số điện thoại bên dưới</p>
+              <div className="rounded-xl p-5 text-left space-y-3"
+                style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.2)' }}>
+                <div>
+                  <p className="text-xs mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>SĐT nhận tiền MoMo</p>
+                  <p className="text-xl font-black tracking-widest" style={{ color: '#FFD700' }}>{MOMO_PHONE.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')}</p>
+                  <p className="text-xs mt-0.5" style={{ color: 'rgba(212,175,55,0.4)' }}>{BANK_NAME}</p>
+                </div>
+                <div style={{ borderTop: '1px solid rgba(212,175,55,0.1)', paddingTop: 12 }}>
+                  <p className="text-xs mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>Số tiền</p>
+                  <p className="text-white font-bold">{vndAmount}</p>
+                </div>
+                <div style={{ borderTop: '1px solid rgba(212,175,55,0.1)', paddingTop: 12 }}>
+                  <p className="text-xs mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>Nội dung chuyển khoản</p>
+                  <p className="text-white font-mono text-sm">AICD {plan.toUpperCase()} [email của bạn]</p>
+                </div>
               </div>
-              <div className="rounded-xl p-4 text-left space-y-1"
-                style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.15)' }}>
-                <p className="text-xs" style={{ color: 'rgba(212,175,55,0.5)' }}>SĐT nhận tiền MoMo</p>
-                <p className="text-white font-bold tracking-wider">[Số điện thoại MoMo]</p>
-                <p className="text-xs" style={{ color: 'rgba(212,175,55,0.5)' }}>Nội dung: AI CONNECT {plan.toUpperCase()} [email]</p>
-              </div>
+              <p className="text-xs" style={{ color: 'rgba(212,175,55,0.4)' }}>
+                Sau khi chuyển, nhắn Zalo để kích hoạt trong 1 giờ
+              </p>
             </div>
           )}
 
           {tab === 'bank' && (
-            <div className="space-y-3">
-              <p className="text-sm text-center mb-3" style={{ color: '#C9A96E' }}>Chuyển khoản ngân hàng nội địa</p>
+            <div>
+              <p className="text-sm text-center mb-3" style={{ color: '#C9A96E' }}>Quét mã VietQR hoặc chuyển khoản TPBank</p>
+              {/* VietQR động — tự điền số tiền + nội dung */}
+              <div className="mx-auto mb-4 rounded-xl overflow-hidden flex items-center justify-center"
+                style={{ width: 180, height: 180, background: 'white', padding: 6 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={vietQRUrl} alt="QR TPBank" width={168} height={168} style={{ objectFit: 'contain' }} />
+              </div>
               {[
-                ['Ngân hàng', '[Tên ngân hàng]'],
-                ['Số tài khoản', '[Số tài khoản]'],
-                ['Tên chủ TK', '[Tên chủ tài khoản]'],
+                ['Ngân hàng', 'TPBank'],
+                ['Số tài khoản', '7326 6666 686'],
+                ['Tên chủ TK', 'PHẠM THỊ THÚY NGÂN'],
                 ['Số tiền', vndAmount],
-                ['Nội dung CK', `AICD ${plan.toUpperCase()} [email của bạn]`],
-              ].map(([label, value]) => (
-                <div key={label} className="flex justify-between items-center py-2"
+                ['Nội dung CK', `AICD ${plan.toUpperCase()} [email]`],
+              ].map(([lbl, value]) => (
+                <div key={lbl} className="flex justify-between items-center py-2"
                   style={{ borderBottom: '1px solid rgba(212,175,55,0.08)' }}>
-                  <span className="text-xs" style={{ color: 'rgba(212,175,55,0.5)' }}>{label}</span>
-                  <span className="text-sm text-white font-medium">{value}</span>
+                  <span className="text-xs" style={{ color: 'rgba(212,175,55,0.5)' }}>{lbl}</span>
+                  <span className="text-sm text-white font-medium text-right">{value}</span>
                 </div>
               ))}
-              <p className="text-xs text-center pt-2" style={{ color: 'rgba(212,175,55,0.4)' }}>
-                Sau khi chuyển khoản, nhắn Zalo để kích hoạt trong 1h
+              <p className="text-xs text-center pt-3" style={{ color: 'rgba(212,175,55,0.4)' }}>
+                QR tự điền số tiền · Sau khi chuyển, nhắn Zalo kích hoạt trong 1h
               </p>
             </div>
           )}
 
           {tab === 'zalo' && (
             <div className="text-center space-y-4">
-              <p className="text-sm" style={{ color: '#C9A96E' }}>Nhắn tin để đăng ký thủ công — hỗ trợ 24/7</p>
-              <a href="https://zalo.me/0000000000" target="_blank" rel="noopener noreferrer"
+              <p className="text-sm" style={{ color: '#C9A96E' }}>Nhắn vào nhóm Zalo để đăng ký — hỗ trợ nhanh</p>
+              <a href="https://zalo.me/g/s4z2fsnceun3fobbzjhd" target="_blank" rel="noopener noreferrer"
                 className="block w-full py-4 rounded-xl font-bold text-black tracking-wider transition hover:opacity-90"
                 style={{ background: 'linear-gradient(135deg, #B8860B, #D4AF37, #FFD700, #D4AF37, #B8860B)' }}>
-                💬 Nhắn Zalo ngay →
+                💬 Vào nhóm Zalo ngay →
               </a>
               <p className="text-xs" style={{ color: 'rgba(212,175,55,0.4)' }}>
-                Ghi rõ: &quot;Đăng ký {label}&quot; — Admin sẽ phản hồi trong 30 phút
+                Ghi rõ: &quot;Đăng ký {label}&quot; — Admin phản hồi trong 30 phút
               </p>
             </div>
           )}
