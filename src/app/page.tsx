@@ -146,8 +146,8 @@ function InlinePayment() {
             <div className="space-y-0 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(212,175,55,0.15)' }}>
               {[
                 ['Ngân hàng', 'ACB'],
-                ['Số tài khoản', '7326 6666 686'],
-                ['Chủ tài khoản', 'PHẠM THỊ THÚY NGÂN'],
+                ['Số tài khoản', '36998866'],
+                ['Chủ tài khoản', 'LÊ THỊ THẢO'],
                 ['Số tiền', fmtVnd(vnd)],
               ].map(([k, v], i) => (
                 <div key={k} className="flex justify-between items-center px-4 py-3"
@@ -221,7 +221,7 @@ function InlinePayment() {
                   <div className="text-center">
                     <p className="text-xs mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>SĐT MoMo nhận tiền</p>
                     <p className="text-2xl font-black tracking-widest" style={{ color: '#FFD700' }}>0949 331 357</p>
-                    <p className="text-xs mt-1" style={{ color: 'rgba(212,175,55,0.4)' }}>PHẠM THỊ THÚY NGÂN</p>
+                    <p className="text-xs mt-1" style={{ color: 'rgba(212,175,55,0.4)' }}>LÊ THỊ THẢO</p>
                   </div>
                   <div style={{ borderTop: '1px solid rgba(212,175,55,0.1)', paddingTop: 12 }} className="text-center">
                     <p className="text-xs mb-1" style={{ color: 'rgba(212,175,55,0.5)' }}>Số tiền</p>
@@ -459,8 +459,8 @@ function PaymentModal({ plan, onClose }: { plan: 'starter' | 'popular' | 'yearly
                   </div>
                   {[
                     ['Ngân hàng', 'ACB'],
-                    ['Số tài khoản', '7326 6666 686'],
-                    ['Tên chủ TK', 'PHẠM THỊ THÚY NGÂN'],
+                    ['Số tài khoản', '36998866'],
+                    ['Tên chủ TK', 'LÊ THỊ THẢO'],
                     ['Số tiền', fmtVnd(vndAmt)],
                     ['Nội dung CK', orderCode],
                   ].map(([lbl, val]) => (
