@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const LUMA_API_BASE = 'https://api.lumalabs.ai/dream-machine/v1'
+const LUMA_API_BASE = 'https://api.luma.com/dream-machine/v1'
 
 type LumaGenerationStatus = 'pending' | 'processing' | 'completed' | 'failed'
 
