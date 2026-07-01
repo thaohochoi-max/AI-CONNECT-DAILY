@@ -1,7 +1,9 @@
 import { Resend } from 'resend'
 import type { Subscriber } from '@/lib/supabase'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY)
+}
 
 export async function sendDailyDigest(
   subscribers: Subscriber[],
@@ -53,7 +55,7 @@ export async function sendDailyDigest(
     const batch = subscribers.slice(i, i + batchSize)
     const results = await Promise.allSettled(
       batch.map(sub =>
-        resend.emails.send({
+        getResend().emails.send({
           from: process.env.RESEND_FROM_EMAIL!,
           to: sub.email,
           subject: `🛠️ Tool mới nhất hôm nay - ${date}`,
@@ -71,7 +73,7 @@ export async function sendDailyDigest(
 }
 
 export async function sendWelcomeEmail(email: string, name: string | null): Promise<void> {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL!,
     to: email,
     subject: '🎉 Chào mừng bạn đến với Daily Tool Digest!',

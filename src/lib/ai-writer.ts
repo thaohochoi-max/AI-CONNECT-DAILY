@@ -1,7 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { ToolItem } from '@/lib/supabase'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+function getClient() {
+  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+}
 
 export async function generateVideoScript(items: ToolItem[], date: string): Promise<string> {
   const toolList = items
@@ -9,7 +11,7 @@ export async function generateVideoScript(items: ToolItem[], date: string): Prom
     .map((item, i) => `${i + 1}. [${item.source}] ${item.title}\n   ${item.description}`)
     .join('\n\n')
 
-  const message = await client.messages.create({
+  const message = await getClient().messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 1500,
     messages: [
@@ -44,7 +46,7 @@ export async function generateEmailSummary(items: ToolItem[], date: string): Pro
     .map((item, i) => `${i + 1}. **${item.title}** (${item.source})\n   ${item.description}\n   🔗 ${item.url}`)
     .join('\n\n')
 
-  const message = await client.messages.create({
+  const message = await getClient().messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 800,
     messages: [
