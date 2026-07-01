@@ -51,17 +51,11 @@ function WatermarkSVG() {
   )
 }
 
-/* ── Logo với fallback ── */
+/* ── Logo với SVG thật ── */
 function Logo({ size = 180, className = '' }: { size?: number; className?: string }) {
-  const [err, setErr] = useState(false)
-  if (err) return (
-    <div style={{ width: size, height: size }}>
-      <WatermarkSVG />
-    </div>
-  )
   return (
-    <Image src="/logo.png" alt="AI Connect Daily" width={size} height={size}
-      className={`logo-blend ${className}`} priority onError={() => setErr(true)} />
+    <Image src="/logo.svg" alt="AI Connect Daily" width={size} height={size}
+      className={`logo-blend ${className}`} priority unoptimized />
   )
 }
 
