@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import { verifySepayRequest, PLAN_AMOUNTS } from '@/lib/sepay'
 import { sendWelcomeEmail } from '@/lib/email'
-import { notifyPayment, notifyError } from '@/lib/telegram'
+import { notifyPayment, notifyError, sendTelegram } from '@/lib/telegram'
 
 type SepayPayload = {
   id: number
@@ -31,10 +31,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, skip: 'outgoing' })
   }
 
-  // 3. Tìm order code AICD trong nội dung chuyển khoản
+  // 3. Thông báo Telegram NGAY KHI có tiền vào (trước khi xử lý)
+  await sendTelegram([
+    `🔔 <b>SePay nhận tiền vào!</b>`,
+    ``,
+    `💵 <b>Số tiền:</b> ${payload.transferAmount.toLocaleString('vi-VN')}đ`,
+    `🏦 <b>Ngân hàng:</b> ${payload.gateway}`,
+    `📝 <b>Nội dung:</b> <code>${payload.content}</code>`,
+    `📋 <b>Ref:</b> <code>${payload.referenceCode}</code>`,
+    `⏰ <b>Thời gian:</b> ${payload.transactionDate}`,
+  ].join('\n')).catch(e => console.error('Early Telegram notify failed:', e))
+
+  // 4. Tìm order code AICD trong nội dung chuyển khoản
   const content = payload.content ?? ''
   const match = content.match(/AICD-(STARTER|POPULAR|YEARLY)-([A-Z0-9]+)/i)
   if (!match) {
+    await sendTelegram(`⚠️ Không tìm thấy mã AICD trong nội dung. Cần xử lý thủ công.\nNội dung: <code>${content}</code>`).catch(() => {})
     return NextResponse.json({ success: true, skip: 'no_aicd_code' })
   }
 
@@ -42,15 +54,15 @@ export async function POST(req: NextRequest) {
   const orderCode = `AICD-${match[1].toUpperCase()}-${match[2].toUpperCase()}`
   const expected  = PLAN_AMOUNTS[planKey]
 
-  // 4. Kiểm tra số tiền
+  // 5. Kiểm tra số tiền
   if (payload.transferAmount < expected - 1000) {
-    await notifyError('SePay webhook', `Số tiền không đủ: ${payload.transferAmount} < ${expected} cho ${orderCode}`).catch(() => {})
+    await sendTelegram(`⚠️ Số tiền không đủ!\nMã: <code>${orderCode}</code>\nNhận: ${payload.transferAmount.toLocaleString('vi-VN')}đ\nCần: ${expected.toLocaleString('vi-VN')}đ`).catch(() => {})
     return NextResponse.json({ success: false, reason: `Amount ${payload.transferAmount} < ${expected}` })
   }
 
   const db = getSupabaseAdmin()
 
-  // 5. Tìm subscriber theo order_code
+  // 6. Tìm subscriber theo order_code
   const { data: sub, error: findErr } = await db
     .from('subscribers')
     .select('*')
@@ -58,11 +70,16 @@ export async function POST(req: NextRequest) {
     .maybeSingle()
 
   if (findErr || !sub) {
-    await notifyError('SePay webhook', `Không tìm thấy subscriber cho order: ${orderCode}`).catch(() => {})
+    await sendTelegram([
+      `⚠️ <b>Không tìm thấy đơn hàng!</b>`,
+      `Mã: <code>${orderCode}</code>`,
+      `Cần tạo thủ công cho khách này.`,
+      findErr ? `Lỗi DB: <code>${findErr.message}</code>` : '',
+    ].filter(Boolean).join('\n')).catch(() => {})
     return NextResponse.json({ success: false, reason: 'subscriber_not_found', orderCode })
   }
 
-  // 6. Kích hoạt tài khoản
+  // 7. Kích hoạt tài khoản
   await db.from('subscribers').update({
     status:      'active',
     plan:        planKey,
@@ -71,7 +88,7 @@ export async function POST(req: NextRequest) {
     amount_paid: payload.transferAmount,
   }).eq('id', sub.id)
 
-  // 7. Thông báo Telegram ngay lập tức
+  // 8. Thông báo chi tiết Telegram
   await notifyPayment({
     email:     sub.email,
     plan:      planKey,
@@ -81,7 +98,7 @@ export async function POST(req: NextRequest) {
     bank:      payload.gateway,
   }).catch(e => console.error('Telegram notify failed:', e))
 
-  // 8. Gửi email chào mừng
+  // 9. Gửi email chào mừng
   try {
     await sendWelcomeEmail(sub.email, sub.name || 'bạn')
   } catch (e) {

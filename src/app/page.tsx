@@ -805,6 +805,82 @@ export default function SalesPage() {
       <InlinePayment />
 
       {/* ════════════════════════════════════
+          NGUỒN TIN
+      ════════════════════════════════════ */}
+      <section className="py-16 px-4" style={{ borderTop: '1px solid rgba(212,175,55,0.08)' }}>
+        <div className="max-w-4xl mx-auto">
+          <p className="text-center text-xs tracking-[0.3em] uppercase mb-3" style={{ color: '#D4AF37' }}>NGUỒN TIN</p>
+          <h2 className="text-2xl font-bold text-center text-white mb-3">Chúng tôi lấy tin từ đâu?</h2>
+          <p className="text-center text-sm mb-10" style={{ color: 'rgba(212,175,55,0.5)' }}>
+            AI tự động thu thập từ 4 nguồn uy tín nhất về AI & công nghệ mỗi ngày
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              {
+                name: 'Product Hunt',
+                url: 'producthunt.com',
+                desc: 'Top sản phẩm AI mới ra mắt hàng ngày',
+                icon: '🚀',
+                tag: 'New Launch',
+                color: '#FF6154',
+              },
+              {
+                name: 'TechCrunch AI',
+                url: 'techcrunch.com',
+                desc: 'Tin tức AI từ báo công nghệ hàng đầu thế giới',
+                icon: '📰',
+                tag: 'Tech News',
+                color: '#00ADEF',
+              },
+              {
+                name: 'The Rundown AI',
+                url: 'therundown.ai',
+                desc: 'Bản tin AI chuyên sâu được 600K+ người đọc',
+                icon: '⚡',
+                tag: 'AI News',
+                color: '#7C3AED',
+              },
+              {
+                name: 'Toolify.ai',
+                url: 'toolify.ai',
+                desc: 'Thư viện 100,000+ AI tools được cập nhật liên tục',
+                icon: '🛠',
+                tag: 'AI Tools',
+                color: '#059669',
+              },
+            ].map(s => (
+              <div key={s.name} className="rounded-2xl p-5 flex flex-col gap-3"
+                style={{ background: 'rgba(212,175,55,0.04)', border: '1px solid rgba(212,175,55,0.12)' }}>
+                <div className="flex items-center justify-between">
+                  <span className="text-3xl">{s.icon}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                    style={{ background: `${s.color}22`, color: s.color, border: `1px solid ${s.color}44` }}>
+                    {s.tag}
+                  </span>
+                </div>
+                <div>
+                  <p className="font-bold text-white text-sm mb-0.5">{s.name}</p>
+                  <p className="text-xs" style={{ color: 'rgba(212,175,55,0.4)' }}>{s.url}</p>
+                </div>
+                <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>{s.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 rounded-2xl p-5 flex items-center gap-4"
+            style={{ background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.15)' }}>
+            <span className="text-3xl shrink-0">🤖</span>
+            <div>
+              <p className="text-sm font-semibold text-white mb-1">Claude AI tóm tắt & chọn lọc</p>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                Sau khi thu thập từ 4 nguồn trên, Claude AI (Anthropic) đọc toàn bộ và chọn ra 5-7 tin quan trọng nhất,
+                viết lại thành bản tóm tắt tiếng Việt dễ hiểu — giao đến inbox lúc 3:00 chiều mỗi ngày.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════
           FAQ
       ════════════════════════════════════ */}
       <section className="py-16 px-4" style={{ borderTop: '1px solid rgba(212,175,55,0.08)' }}>
