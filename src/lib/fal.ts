@@ -1,7 +1,9 @@
 import axios from 'axios'
 
 const FAL_QUEUE_BASE = 'https://queue.fal.run'
-const FAL_MODEL = 'fal-ai/wan-25-preview/text-to-video'
+const FAL_ENDPOINT = 'fal-ai/wan-25-preview/text-to-video'
+// Status/result URLs live under the app namespace, without the /text-to-video suffix
+const FAL_APP = 'fal-ai/wan-25-preview'
 
 type FalGenerationStatus = 'pending' | 'processing' | 'completed' | 'failed'
 
@@ -23,7 +25,7 @@ export async function createVideoFromScript(script: string, date: string): Promi
   const visualPrompt = extractVisualPrompt(script, date)
 
   const response = await axios.post(
-    `${FAL_QUEUE_BASE}/${FAL_MODEL}`,
+    `${FAL_QUEUE_BASE}/${FAL_ENDPOINT}`,
     {
       prompt: visualPrompt,
       aspect_ratio: '16:9',
@@ -38,7 +40,7 @@ export async function createVideoFromScript(script: string, date: string): Promi
 
 export async function checkVideoStatus(requestId: string): Promise<FalGeneration> {
   const statusRes = await axios.get(
-    `${FAL_QUEUE_BASE}/${FAL_MODEL}/requests/${requestId}/status`,
+    `${FAL_QUEUE_BASE}/${FAL_APP}/requests/${requestId}/status`,
     { headers: falHeaders() }
   )
   const status = statusRes.data.status as 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED'
@@ -49,7 +51,7 @@ export async function checkVideoStatus(requestId: string): Promise<FalGeneration
   // COMPLETED — fetch the actual result payload (fal.ai returns an error body here if generation failed)
   try {
     const resultRes = await axios.get(
-      `${FAL_QUEUE_BASE}/${FAL_MODEL}/requests/${requestId}`,
+      `${FAL_QUEUE_BASE}/${FAL_APP}/requests/${requestId}`,
       { headers: falHeaders() }
     )
     const video = resultRes.data.video as { url?: string } | undefined
