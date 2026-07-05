@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase'
 import { scrapeAllSources } from '@/lib/scraper'
 import { generateVideoScript, generateEmailSummary } from '@/lib/ai-writer'
-import { createVideoFromScript } from '@/lib/luma'
+import { createVideoFromScript } from '@/lib/fal'
 import type { ToolItem } from '@/lib/supabase'
 
 function authorized(req: NextRequest) {

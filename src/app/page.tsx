@@ -649,7 +649,7 @@ export default function SalesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[
               { icon: '📰', title: 'Bản tin AI hàng ngày', desc: 'Top 5-8 tool & tin tức AI nổi bật nhất — được lọc thủ công từ Product Hunt, TechCrunch, The Rundown AI...' },
-              { icon: '🎬', title: 'Video tóm tắt 90 giây', desc: 'Claude viết script, Luma AI tạo video. Xem xong trong lúc uống cà phê, nắm ngay điểm quan trọng nhất.' },
+              { icon: '🎬', title: 'Video tóm tắt 90 giây', desc: 'Claude viết script, AI tạo video. Xem xong trong lúc uống cà phê, nắm ngay điểm quan trọng nhất.' },
               { icon: '⚡', title: 'Giao hàng đúng 3:00 chiều', desc: 'Tự động, đúng giờ, không cần nhớ. Inbox của bạn = trung tâm cập nhật AI cá nhân.' },
               { icon: '🔍', title: 'Phân tích sâu (bonus)', desc: 'Những tool thực sự đáng dùng — kèm hướng dẫn ứng dụng ngay vào công việc.' },
               { icon: '🌐', title: '4 nguồn tổng hợp', desc: 'Product Hunt · TechCrunch AI · The Rundown AI · Toolify.ai — tất cả trong 1 email duy nhất.' },
@@ -890,7 +890,7 @@ export default function SalesPage() {
           <div className="space-y-3">
             {[
               { q: 'Tôi nhận được gì sau khi đăng ký?', a: 'Ngay sau khi xác nhận thanh toán, bạn được thêm vào danh sách. Email đầu tiên sẽ đến vào chiều hôm đó lúc 3:00 (hoặc hôm sau nếu đã qua 3h).' },
-              { q: 'Video AI trông như thế nào?', a: 'Video ngắn 60-90 giây do Luma AI tạo từ script viết bởi Claude — tóm tắt 3-5 tool nổi bật nhất trong ngày, kèm hình ảnh minh họa.' },
+              { q: 'Video AI trông như thế nào?', a: 'Video ngắn 60-90 giây do AI tạo từ script viết bởi Claude — tóm tắt 3-5 tool nổi bật nhất trong ngày, kèm hình ảnh minh họa.' },
               { q: 'Có thể hủy không? Có mất tiền không?', a: 'Gói tháng: hủy bất kỳ lúc nào, không thu thêm. Gói năm: thanh toán 1 lần, không hoàn tiền nhưng không tự gia hạn.' },
               { q: 'Nội dung có phù hợp cho người mới bắt đầu không?', a: 'Có. Nội dung được viết đơn giản, dễ hiểu cho cả người mới lẫn người đã có kinh nghiệm với AI.' },
               { q: 'Tôi muốn dùng thử trước khi mua?', a: 'Nhắn Zalo để nhận 3 ngày trải nghiệm miễn phí. Không cần thẻ ngân hàng.' },

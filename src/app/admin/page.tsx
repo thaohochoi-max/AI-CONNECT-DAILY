@@ -236,7 +236,7 @@ export default function AdminPage() {
                       {d.videos?.[0]?.video_url && (
                         <a href={d.videos[0].video_url} target="_blank" rel="noopener noreferrer"
                           className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500/20 text-purple-300 rounded-lg text-sm hover:bg-purple-500/30 transition">
-                          ▶ Xem video Luma AI
+                          ▶ Xem video AI
                         </a>
                       )}
 
@@ -253,7 +253,7 @@ export default function AdminPage() {
                           <button onClick={() => triggerStep('/api/video', { digestId: d.id })}
                             disabled={!!runningStep}
                             className="px-3 py-1.5 bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded-lg text-xs hover:bg-orange-500/30 disabled:opacity-40">
-                            3️⃣ Tạo video Luma AI
+                            3️⃣ Tạo video AI
                           </button>
                         )}
                         {(d.status === 'video_ready' || d.status === 'video_generating') && (

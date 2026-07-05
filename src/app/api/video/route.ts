@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase'
-import { createVideoFromScript, checkVideoStatus } from '@/lib/luma'
+import { createVideoFromScript, checkVideoStatus } from '@/lib/fal'
 
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization')

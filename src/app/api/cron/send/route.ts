@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase'
-import { checkVideoStatus } from '@/lib/luma'
+import { checkVideoStatus } from '@/lib/fal'
 import { sendDailyDigest } from '@/lib/email'
 import type { Subscriber } from '@/lib/supabase'
 
