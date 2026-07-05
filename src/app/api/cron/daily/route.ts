@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from '@/lib/supabase'
 import { scrapeAllSources } from '@/lib/scraper'
 import { generateVideoScript, generateEmailSummary } from '@/lib/ai-writer'
 import { createVideoFromScript } from '@/lib/fal'
+import { sendTelegram } from '@/lib/telegram'
 import type { ToolItem } from '@/lib/supabase'
 
 function authorized(req: NextRequest) {
@@ -57,6 +58,17 @@ export async function GET(req: NextRequest) {
       ])
       await db.from('digests').update({ script, email_html: emailHtml, status: 'scripted' }).eq('id', digestId)
       log.push(`Script generated (${script.length} chars)`)
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://daily-tool-digest.vercel.app'
+      const titles = items.slice(0, 5).map((it, i) => `${i + 1}. ${it.title}`).join('\n')
+      await sendTelegram([
+        `📰 <b>Nội dung ${dateStr} đã sẵn sàng để duyệt</b>`,
+        ``,
+        titles,
+        ``,
+        `Xem/sửa đầy đủ tại: ${appUrl}/admin`,
+        `Nhắn <b>/duyet</b> để duyệt và gửi email ngay cho subscribers.`,
+      ].join('\n')).catch(e => console.error('Telegram notify failed:', e))
     }
 
     // Step 4: Start Luma video (if not done)
@@ -71,7 +83,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    log.push('Pipeline started. /api/cron/send will check video + send at 15:30.')
+    log.push('Pipeline started. Waiting for admin approval (/duyet) before /api/cron/send sends at 15:30.')
     return NextResponse.json({ success: true, digestId, log })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)

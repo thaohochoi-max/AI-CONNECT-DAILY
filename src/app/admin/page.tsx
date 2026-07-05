@@ -10,6 +10,8 @@ type Digest = {
   items: DigestItem[]
   status: string
   script: string | null
+  email_html: string | null
+  approved_at: string | null
   videos?: { video_url: string | null; status: string }[]
 }
 
@@ -62,6 +64,8 @@ export default function AdminPage() {
   const [runningStep, setRunningStep] = useState<string | null>(null)
   const [log, setLog] = useState<string[]>([])
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [draftHtml, setDraftHtml] = useState('')
 
   useEffect(() => {
     const s = localStorage.getItem('admin_secret')
@@ -95,6 +99,12 @@ export default function AdminPage() {
     const data = await callAPI('/api/cron/daily', 'GET')
     setLog(data.log || [String(data.error || 'Done')])
     setRunningStep(null); fetchData(secret!)
+  }
+
+  async function saveEdit(digestId: string) {
+    await callAPI('/api/admin/digest', 'PATCH', { digestId, email_html: draftHtml })
+    setEditingId(null)
+    fetchData(secret!)
   }
 
   async function triggerStep(path: string, body?: object) {
@@ -195,6 +205,15 @@ export default function AdminPage() {
                       <span className={`px-3 py-1 rounded-full text-xs font-medium border ${STATUS_COLOR[d.status] || 'bg-slate-500/20 text-slate-400 border-slate-500/30'}`}>
                         {d.status}
                       </span>
+                      {d.approved_at ? (
+                        <span className="px-3 py-1 rounded-full text-xs font-medium border bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                          Đã duyệt
+                        </span>
+                      ) : d.email_html ? (
+                        <span className="px-3 py-1 rounded-full text-xs font-medium border bg-amber-500/20 text-amber-400 border-amber-500/30">
+                          Chờ duyệt
+                        </span>
+                      ) : null}
                       <span className="text-slate-500 text-xs">{isOpen ? '▲' : '▼'}</span>
                     </div>
                   </button>
@@ -229,6 +248,39 @@ export default function AdminPage() {
                           <pre className="text-xs text-slate-300 bg-black/30 rounded-lg p-3 max-h-40 overflow-y-auto whitespace-pre-wrap font-mono">
                             {d.script}
                           </pre>
+                        </div>
+                      )}
+
+                      {/* Email content preview / edit */}
+                      {d.email_html && (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs text-slate-400 font-medium uppercase tracking-wide">Nội dung email</p>
+                            {editingId !== d.id && (
+                              <button onClick={() => { setEditingId(d.id); setDraftHtml(d.email_html || '') }}
+                                className="text-xs text-blue-400 hover:underline">Sửa</button>
+                            )}
+                          </div>
+                          {editingId === d.id ? (
+                            <div className="space-y-2">
+                              <textarea value={draftHtml} onChange={e => setDraftHtml(e.target.value)}
+                                className="w-full h-48 text-xs font-mono bg-black/30 border border-white/10 rounded-lg p-3 text-slate-200"
+                              />
+                              <div className="flex gap-2">
+                                <button onClick={() => saveEdit(d.id)}
+                                  className="px-3 py-1.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-lg text-xs hover:bg-blue-500/30">
+                                  💾 Lưu
+                                </button>
+                                <button onClick={() => setEditingId(null)}
+                                  className="px-3 py-1.5 bg-slate-500/20 text-slate-300 border border-slate-500/30 rounded-lg text-xs hover:bg-slate-500/30">
+                                  Hủy
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-xs bg-black/30 rounded-lg p-3 max-h-48 overflow-y-auto border border-white/10"
+                              dangerouslySetInnerHTML={{ __html: d.email_html }} />
+                          )}
                         </div>
                       )}
 
@@ -267,7 +319,7 @@ export default function AdminPage() {
                               <button onClick={() => triggerStep('/api/send', { digestId: d.id })}
                                 disabled={!!runningStep}
                                 className="px-3 py-1.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg text-xs hover:bg-green-500/30 disabled:opacity-40">
-                                4️⃣ Gửi email subscribers
+                                4️⃣ Duyệt & Gửi
                               </button>
                             )}
                           </>
@@ -276,7 +328,7 @@ export default function AdminPage() {
                           <button onClick={() => triggerStep('/api/send', { digestId: d.id })}
                             disabled={!!runningStep}
                             className="px-3 py-1.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded-lg text-xs hover:bg-green-500/30 disabled:opacity-40">
-                            4️⃣ Gửi email (không có video)
+                            4️⃣ Duyệt & Gửi (không có video)
                           </button>
                         )}
                       </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { replyTelegram, TelegramUpdate } from '@/lib/telegram'
 import { getSupabaseAdmin } from '@/lib/supabase'
+import { sendDigestNow } from '@/lib/sendPipeline'
 
 // Vercel xác thực Telegram webhook qua secret path
 export async function POST(req: NextRequest) {
@@ -32,7 +33,8 @@ export async function POST(req: NextRequest) {
       '/stats — Thống kê tổng quan',
       '/subscribers — Danh sách subscribers gần đây',
       '/run — Chạy pipeline thu thập tin hôm nay',
-      '/send — Gửi email digest hôm nay',
+      '/duyet — Duyệt nội dung hôm nay và gửi email ngay',
+      '/send — Gửi lại digest hôm nay (chỉ chạy nếu đã /duyet)',
       '/help — Hiển thị menu này',
     ].join('\n'))
     return NextResponse.json({ ok: true })
@@ -123,6 +125,37 @@ export async function POST(req: NextRequest) {
       await replyTelegram(chatId, `✅ Đã gửi ${data.sent ?? 0} email · Lỗi: ${data.failed ?? 0}`)
     } catch (e) {
       await replyTelegram(chatId, `❌ Lỗi: ${e instanceof Error ? e.message : String(e)}`)
+    }
+    return NextResponse.json({ ok: true })
+  }
+
+  // ── /duyet ───────────────────────────────────────────────────────────────
+  if (text === '/duyet') {
+    const db = getSupabaseAdmin()
+    const today = new Date().toISOString().split('T')[0]
+    const { data: digest } = await db.from('digests').select('id, email_html, status').eq('date', today).single()
+
+    if (!digest) {
+      await replyTelegram(chatId, '📭 Chưa có digest nào cho hôm nay.')
+      return NextResponse.json({ ok: true })
+    }
+    if (digest.status === 'sent') {
+      await replyTelegram(chatId, '✅ Digest hôm nay đã gửi rồi.')
+      return NextResponse.json({ ok: true })
+    }
+    if (!digest.email_html) {
+      await replyTelegram(chatId, '⚠️ Chưa có nội dung để duyệt — script/email chưa được tạo xong.')
+      return NextResponse.json({ ok: true })
+    }
+
+    await db.from('digests').update({ approved_at: new Date().toISOString() }).eq('id', digest.id)
+    await replyTelegram(chatId, '👍 Đã duyệt. Đang gửi email...')
+
+    const result = await sendDigestNow(digest.id, { requireApproval: false })
+    if (result.success) {
+      await replyTelegram(chatId, `✅ Đã gửi ${result.sent ?? 0} email · Lỗi: ${result.failed ?? 0}`)
+    } else {
+      await replyTelegram(chatId, `❌ ${result.message ?? 'Gửi thất bại'}`)
     }
     return NextResponse.json({ ok: true })
   }
