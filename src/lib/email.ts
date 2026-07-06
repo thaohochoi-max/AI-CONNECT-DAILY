@@ -64,8 +64,15 @@ export async function sendDailyDigest(
       )
     )
     results.forEach(r => {
-      if (r.status === 'fulfilled') sent++
-      else failed++
+      // The Resend SDK resolves (doesn't throw) even when the API rejects the send —
+      // errors show up as `{ error }` in the resolved value, not as a rejected promise.
+      if (r.status === 'fulfilled' && !r.value.error) {
+        sent++
+      } else {
+        failed++
+        const reason = r.status === 'fulfilled' ? JSON.stringify(r.value.error) : String(r.reason)
+        console.error('Resend send failed:', reason)
+      }
     })
   }
 
@@ -73,7 +80,7 @@ export async function sendDailyDigest(
 }
 
 export async function sendWelcomeEmail(email: string, name: string | null): Promise<void> {
-  await getResend().emails.send({
+  const { error } = await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL!,
     to: email,
     subject: '🎉 Chào mừng bạn đến với Daily Tool Digest!',
@@ -95,4 +102,6 @@ export async function sendWelcomeEmail(email: string, name: string | null): Prom
 </body>
 </html>`,
   })
+
+  if (error) throw new Error(`Resend error: ${JSON.stringify(error)}`)
 }
