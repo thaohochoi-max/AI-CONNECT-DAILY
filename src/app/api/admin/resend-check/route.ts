@@ -8,19 +8,14 @@ export async function GET(req: NextRequest) {
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY)
+  const { searchParams } = new URL(req.url)
+  const addDomain = searchParams.get('addDomain')
+
+  if (addDomain) {
+    const created = await resend.domains.create({ name: addDomain })
+    return NextResponse.json(created)
+  }
+
   const domains = await resend.domains.list()
-
-  const testSend = await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL!,
-    to: 'claude-diagnostic-test@example.com',
-    subject: 'Diagnostic test',
-    html: '<p>test</p>',
-  })
-
-  return NextResponse.json({
-    fromEnv: process.env.RESEND_FROM_EMAIL,
-    domains: domains.data,
-    domainsError: domains.error,
-    testSend,
-  })
+  return NextResponse.json({ fromEnv: process.env.RESEND_FROM_EMAIL, domains: domains.data, domainsError: domains.error })
 }
